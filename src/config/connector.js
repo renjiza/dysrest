@@ -13,7 +13,7 @@ let pool = mariadb.createPool({
   port: '3306',
   user: 'root',
   password: 'n0madgen007',
-  database: 'ds',
+  database: 'dys',
 })
 
 module.exports = pool
