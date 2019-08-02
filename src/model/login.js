@@ -70,7 +70,7 @@ exports.in = async (req, reply) => {
         const res = await db.query(sql)
         if (res.length > 0) {
             if (bcrypt.compareSync(input.password, res[0].userPassword)) {
-                token = jwt.sign({ id: 1 }, 'muhammadevanozaflanalfarezel', {
+                token = jwt.sign({ id: res[0].userId }, 'muhammadevanozaflanalfarezel', {
                     expiresIn: 86400, // expires in 24 hours
                     subject: Date.now().toString()
                 });            

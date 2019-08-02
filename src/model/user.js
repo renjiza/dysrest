@@ -15,7 +15,9 @@ exports.get = async (req, reply) => {
         const sql = `SELECT
                         ${column}
                     FROM user
-                    WHERE userClientId = '${input.client}'
+                    WHERE 
+                    userActive = 1
+                    AND userClientId = '${input.client}'
                     ${filter}
                     ${order}
                     ${limit}
@@ -73,24 +75,28 @@ exports.getById = async (req, reply) => {
 
 exports.create = async (req, reply) => {
     try {
-
         const db = await pool.getConnection()
         const input = req.body
-        const sql = `INSERT INTO user
-                        (userClientId, userBranchId, userEmail, userPassword, userFullname, userActive, userLog)
-                    VALUES
-                        (?,?,?,?,?,?,?)`
-        const res = await db.query(sql, [input.client, input.branch, input.userEmail, bcrypt.hashSync(input.userPassword, 10), input.userFullname, input.userActive, '[]'])
-        if (res.affectedRows > 0) {
+        const sql = `call userCreate(?,?,?,?,?,?,?)`
+        const res = await db.query(sql, [
+            input.client, 
+            input.branch, 
+            input.userEmail, 
+            bcrypt.hashSync(input.userPassword, 10), 
+            input.userFullname, 
+            input.user,            
+            input.logDetail,
+        ])
+        if (res[0][0].status === 1) {
             reply.send({
                 status: 200,
                 error: null,
-                response: `User ${input.userEmail} berhasil ditambahkan`,
+                response: `User ${input.userFullname} berhasil ditambahkan`,
             })            
         } else {
             reply.send({
                 status: 200,
-                error: null,
+                error: res,
                 response: null,
             })
         }
@@ -104,16 +110,20 @@ exports.update = async (req, reply) => {
     try {
         const db = await pool.getConnection()
         const input = req.body
-        const sql = `UPDATE user SET 
-                        userFullname = ?,
-                        userActive = ?
-                    WHERE userId = ?`
-        const res = await db.query(sql, [input.userFullname, input.userActive, input.id])
-        if (res.affectedRows > 0) {
+        const sql = `call userUpdate(?,?,?,?,?,?)`
+        const res = await db.query(sql, [
+            input.id,
+            input.userEmail,
+            input.userPassword,
+            input.userFullname,
+            input.user,
+            input.logDetail,
+        ])
+        if (res[0][0].status === 1) {
             reply.send({
                 status: 200,
                 error: null,
-                response: `User ${input.userEmail} berhasil diperbarui`,
+                response: `User ${input.userFullname} berhasil diperbarui`,
             })            
         } else {
             reply.send({
@@ -133,12 +143,16 @@ exports.delete = async (req, reply) => {
         const db = await pool.getConnection()
         const id = req.params.id
         const input = req.query
-        const res = await db.query(`DELETE FROM user WHERE userId = '${id}'`)
-        if (res.affectedRows > 0) {
+        const sql = `call userDelete(?,?)`
+        const res = await db.query(sql, [
+            id,
+            input.user,
+        ])
+        if (res[0][0].status === 1) {
             reply.send({
                 status: 200,
                 error: null,
-                response: `User berhasil dihapus`,
+                response: `User ${input.info} berhasil dihapus`,
             })
         } else {
             reply.send({

@@ -26,8 +26,7 @@ router.get('/', (req, res) => {
 const login = require('../model/login');
 router.get('/checkSession', login.checkSession)
 router.get('/getMenu', login.getMenu)
-router.get('/getMenuUser', login.getMenuByToken)
-router.get('/getPrivilege', login.getPrivilege)
+router.get('/getMenuByToken', login.getMenuByToken)
 router.post('/in', login.in)
 router.put('/out', login.out)
 
