@@ -33,6 +33,15 @@ app.get('/getMenuByToken', auth.getMenuByToken)
 app.post('/in', auth.in)
 app.put('/out', auth.out)
 
+// //==================== client =====================
+const client = require('../model/client');
+app.get('/client', client.get)
+app.get('/client/:id', client.getById)
+app.post('/client', client.create)
+app.put('/client', client.update)
+app.put('/client/:id', client.change)
+app.delete('/client/:id', client.delete)
+
 //==================== user =====================
 const user = require('../model/user');
 app.get('/user', user.get)

@@ -1,8 +1,7 @@
 const pool = require('../config/database');
-const bcrypt = require('bcryptjs');
 const auth = require('./auth');
 
-const label = "userFullname";
+const label = "popName";
 
 exports.get = async (req, reply) => {
     let res
@@ -17,9 +16,9 @@ exports.get = async (req, reply) => {
         const offset = input.offset && input.offset !== '' ? ` OFFSET ${input.offset} ` : ''
         const sql = `SELECT
                         ${column}
-                    FROM user
-                    WHERE userActive = 1                    
-                    AND userClientId = '${input.client}'
+                    FROM pop
+                    WHERE popActive = 1
+                    AND popClientId = '${input.client}'
                     ${filter}
                     ${order}
                     ${limit}
@@ -52,8 +51,8 @@ exports.getById = async (req, reply) => {
         const column = input.column && input.column !== '' ? input.column : '*'
         const sql = `SELECT 
                     ${column}
-                    FROM user
-                    WHERE userId = ${id}`
+                    FROM pop
+                    WHERE popId = ${id}`
         const res = await db.query(sql)
         if (res.length > 0) {
             reply.send({
@@ -78,16 +77,13 @@ exports.create = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()    
-        const isAllow = await auth.isAllow(input.user, "user", "add")
+        const isAllow = await auth.isAllow(input.user, "pop", "add")
         if (isAllow) {
-            const sql = `call userCreate(?,?,?,?,?,?,?,?)`
+            const sql = `call popCreate(?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.client, 
-                input.branch, 
-                input.userEmail, 
-                bcrypt.hashSync(input.userPassword, 10), 
-                input.userFullname, 
-                input.userSuper,
+                input.popCode,
+                input.popName,
                 input.user,            
                 input.logDetail,
             ])
@@ -95,7 +91,7 @@ exports.create = async (req, reply) => {
                 reply.send({
                     status: 200,
                     error: null,
-                    response: `User "${input[label]}" berhasil dibuat`,
+                    response: `Pre Order Pembelian "${input[label]}" berhasil dibuat`,
                 })            
             } else {
                 reply.send({
@@ -107,7 +103,7 @@ exports.create = async (req, reply) => {
         } else {
             reply.send({
                 status: 200,
-                error: `User "${input[label]}" gagal dibuat, karena anda tidak lagi mempunyai akses "add" pada menu ini`,
+                error: `Pre Order Pembelian "${input[label]}" gagal dibuat, karena anda tidak lagi mempunyai akses "add" pada menu ini`,
                 response: null,
             })
         }
@@ -121,30 +117,21 @@ exports.update = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()
-        const isAllow = await auth.isAllow(input.user, "user", "edit")
-        if (isAllow) {            
-            const sql = `call userUpdate(?,?,?,?,?,?,?)`
+        const isAllow = await auth.isAllow(input.user, "pop", "edit")
+        if (isAllow) {
+            const sql = `call popUpdate(?,?,?,?,?)`
             const res = await db.query(sql, [
-                input.userId,
-                input.userEmail,
-                input.userPassword,
-                input.userFullname,
-                input.userSuper,
+                input.popId,
+                input.popCode,
+                input.popName,
                 input.user,
                 input.logDetail,
             ])
             if (res[0][0].status === 1) {
-                console.log(req.connected, input.userId)
-                if (req.connected[input.userId]) {
-                    req.connected[input.userId].emit('user updated', {
-                        itId: input.user,
-                        message: `Data user kamu baru saja diperbarui oleh ${input.fullname}`,
-                    })
-                }
                 reply.send({
                     status: 200,
                     error: null,
-                    response: `User "${input[label]}" berhasil diperbarui`,
+                    response: `Pre Order Pembelian "${input[label]}" berhasil diperbarui`,
                 })            
             } else {
                 reply.send({
@@ -156,7 +143,7 @@ exports.update = async (req, reply) => {
         } else {
             reply.send({
                 status: 200,
-                error: `User "${input[label]}" gagal diubah, karena anda tidak lagi mempunyai akses "edit" pada menu ini`,
+                error: `Pre Order Pembelian "${input[label]}" gagal diubah, karena anda tidak lagi mempunyai akses "edit" pada menu ini`,
                 response: null,
             })
         }
@@ -171,9 +158,9 @@ exports.delete = async (req, reply) => {
     const input = req.query
     try {
         const db = await pool.getConnection()        
-        const isAllow = await auth.isAllow(input.user, "user", "delete")
+        const isAllow = await auth.isAllow(input.user, "pop", "delete")
         if (isAllow) {
-            const sql = `call userDelete(?,?)`
+            const sql = `call popDelete(?,?)`
             const res = await db.query(sql, [
                 id,
                 input.user,
@@ -182,7 +169,7 @@ exports.delete = async (req, reply) => {
                 reply.send({
                     status: 200,
                     error: null,
-                    response: `User "${input.info}" berhasil dihapus`,
+                    response: `Pre Order Pembelian "${input.info}" berhasil dihapus`,
                 })
             } else {
                 reply.send({
@@ -194,7 +181,7 @@ exports.delete = async (req, reply) => {
         } else {
             reply.send({
                 status: 200,
-                error: `User "${input.info}" gagal dihapus, karena anda tidak lagi mempunyai akses "delete" pada menu ini`,
+                error: `Pre Order Pembelian "${input.info}" gagal dihapus, karena anda tidak lagi mempunyai akses "delete" pada menu ini`,
                 response: null,
             })
         }

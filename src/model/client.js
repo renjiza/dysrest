@@ -17,9 +17,8 @@ exports.get = async (req, reply) => {
         const offset = input.offset && input.offset !== '' ? ` OFFSET ${input.offset} ` : ''
         const sql = `SELECT
                         ${column}
-                    FROM user
-                    WHERE userActive = 1                    
-                    AND userClientId = '${input.client}'
+                    FROM client
+                    WHERE 1 = 1
                     ${filter}
                     ${order}
                     ${limit}
@@ -52,8 +51,8 @@ exports.getById = async (req, reply) => {
         const column = input.column && input.column !== '' ? input.column : '*'
         const sql = `SELECT 
                     ${column}
-                    FROM user
-                    WHERE userId = ${id}`
+                    FROM client
+                    WHERE clientId = ${id}`
         const res = await db.query(sql)
         if (res.length > 0) {
             reply.send({
@@ -78,9 +77,9 @@ exports.create = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()    
-        const isAllow = await auth.isAllow(input.user, "user", "add")
+        const isAllow = await auth.isAllow(input.user, "client", "add")
         if (isAllow) {
-            const sql = `call userCreate(?,?,?,?,?,?,?,?)`
+            const sql = `call clientCreate(?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.client, 
                 input.branch, 
@@ -107,7 +106,7 @@ exports.create = async (req, reply) => {
         } else {
             reply.send({
                 status: 200,
-                error: `User "${input[label]}" gagal dibuat, karena anda tidak lagi mempunyai akses "add" pada menu ini`,
+                error: `Klien "${input[label]}" gagal dibuat, karena anda tidak lagi mempunyai akses "add" pada menu ini`,
                 response: null,
             })
         }
@@ -117,34 +116,29 @@ exports.create = async (req, reply) => {
     }
 }
 
-exports.update = async (req, reply) => {
+exports.change = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()
-        const isAllow = await auth.isAllow(input.user, "user", "edit")
-        if (isAllow) {            
-            const sql = `call userUpdate(?,?,?,?,?,?,?)`
-            const res = await db.query(sql, [
-                input.userId,
-                input.userEmail,
-                input.userPassword,
-                input.userFullname,
-                input.userSuper,
-                input.user,
-                input.logDetail,
+        const isSuperUser = await db.query(`SELECT userSuper FROM user WHERE userId = ?`, [input.user])        
+        if (isSuperUser[0].userSuper > 0) {
+            const sql = `call clientChange(?,?,?,?,?)`
+            const res = await db.query(sql, [     
+                input.clientId,
+                input.clientName,
+                input.clientEmail,
+                input.clientPhone,
+                input.clientAddress,
             ])
             if (res[0][0].status === 1) {
-                console.log(req.connected, input.userId)
-                if (req.connected[input.userId]) {
-                    req.connected[input.userId].emit('user updated', {
-                        itId: input.user,
-                        message: `Data user kamu baru saja diperbarui oleh ${input.fullname}`,
-                    })
-                }
+                req.io.sockets.emit('client updated', {
+                    itId: input.user,
+                    message: `Data perusahaan baru saja diperbarui oleh ${input.fullname}`,
+                })
                 reply.send({
                     status: 200,
                     error: null,
-                    response: `User "${input[label]}" berhasil diperbarui`,
+                    response: `Data perusahaan berhasil diperbarui`,
                 })            
             } else {
                 reply.send({
@@ -156,7 +150,7 @@ exports.update = async (req, reply) => {
         } else {
             reply.send({
                 status: 200,
-                error: `User "${input[label]}" gagal diubah, karena anda tidak lagi mempunyai akses "edit" pada menu ini`,
+                error: `Data perusahaan gagal diubah`,
                 response: null,
             })
         }
