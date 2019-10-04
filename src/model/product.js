@@ -79,21 +79,20 @@ exports.create = async (req, reply) => {
         const db = await pool.getConnection()    
         const isAllow = await auth.isAllow(input.user, "product", "add")
         if (isAllow) {
-            input.productDescription = input.productDescription ? input.productDescription : '-'
             const sql = `call productCreate(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [                
                 input.client,
                 input.productProducttypeId,
                 input.productCode,
-                input.productBarcode,
+                (input.productBarcode || ''),
                 input.productName,
                 input.productUnit1,
-                input.productUnit2,
-                input.productRatio2,
-                input.productUnit3,
-                input.productRatio3,
+                (input.productUnit2 || ''),
+                (input.productRatio2 || 0),
+                (input.productUnit3 || ''),
+                (input.productRatio3 || 0),
                 '',
-                input.productDescription,
+                (input.productDescription || ''),
                 input.user,
                 input.logDetail,
             ])
@@ -130,22 +129,18 @@ exports.update = async (req, reply) => {
         const db = await pool.getConnection()
         const isAllow = await auth.isAllow(input.user, "product", "edit")
         if (isAllow) {
-            input.productUnit2 = input.productUnit2 ? input.productUnit2 : ''
-            input.productRatio2 = input.productRatio2 ? input.productRatio2 : 0
-            input.productUnit3 = input.productUnit3 ? input.productUnit3 : ''
-            input.productRatio3 = input.productRatio3 ? input.productRatio3 : 0
             const sql = `call productUpdate(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.productId,
                 input.productProducttypeId,
                 input.productCode,
-                input.productBarcode,
+                (input.productBarcode || ''),
                 input.productName,
                 input.productUnit1,
-                input.productUnit2,
-                input.productRatio2,
-                input.productUnit3,
-                input.productRatio3,
+                (input.productUnit2 || ''),
+                (input.productRatio2 || 0),
+                (input.productUnit3 || ''),
+                (input.productRatio3 || 0),
                 '',
                 input.productDescription,
                 input.user,

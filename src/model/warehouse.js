@@ -88,7 +88,7 @@ exports.create = async (req, reply) => {
                 input.warehouseName,
                 input.warehouseAddress,
                 input.warehousePic,
-                input.warehouseIsVirtual,
+                (input.warehouseIsVirtual || 0),
                 input.user,            
                 input.logDetail,
             ])
@@ -132,7 +132,7 @@ exports.update = async (req, reply) => {
                 input.warehouseName,
                 input.warehouseAddress,
                 input.warehousePic,
-                input.warehouseIsVirtual,
+                (input.warehouseIsVirtual || 0),
                 input.user,
                 input.logDetail,
             ])

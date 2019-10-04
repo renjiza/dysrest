@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const bcrypt = require('bcryptjs');
 const auth = require('./auth');
+const moment = require('moment');
 
 const label = "userFullname";
 
@@ -134,11 +135,13 @@ exports.update = async (req, reply) => {
                 input.logDetail,
             ])
             if (res[0][0].status === 1) {
-                console.log(req.connected, input.userId)
-                if (req.connected[input.userId]) {
+                if (req.connected[input.userId] && input.user !== input.userId) {
                     req.connected[input.userId].emit('user updated', {
-                        itId: input.user,
-                        message: `Data user kamu baru saja diperbarui oleh ${input.fullname}`,
+                        senderId: input.user,
+                        notificationIcon: 'automatic-updates',
+                        notificationTitle: `Data user diperbarui`,
+                        notificationContent: `Data user kamu telah diperbarui oleh ${input.fullname}`,
+                        notificationDatetime: moment().format('DD MMM YYYY, HH:mm'),
                     })
                 }
                 reply.send({

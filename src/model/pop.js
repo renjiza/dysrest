@@ -1,7 +1,8 @@
 const pool = require('../config/database');
 const auth = require('./auth');
+const moment = require('moment');
 
-const label = "popName";
+const label = "popCodeTrans";
 
 exports.get = async (req, reply) => {
     let res
@@ -17,6 +18,7 @@ exports.get = async (req, reply) => {
         const sql = `SELECT
                         ${column}
                     FROM pop
+                    INNER JOIN department ON departmentId = popDepartmentId
                     WHERE popActive = 1
                     AND popClientId = '${input.client}'
                     ${filter}
@@ -55,6 +57,17 @@ exports.getById = async (req, reply) => {
                     WHERE popId = ${id}`
         const res = await db.query(sql)
         if (res.length > 0) {
+            const sql2 = `SELECT 
+                        popdet.*,
+                        productCode,
+                        productBarcode,
+                        productName
+                    FROM popdet
+                    INNER JOIN product ON productId = popdetProductId
+                    WHERE popdetPopId = ${res[0].popId}
+                    ORDER BY popdetId ASC`
+            const res2 = await db.query(sql2)
+            res[0].detail = res2
             reply.send({
                 status: 200,
                 error: null,
@@ -73,25 +86,76 @@ exports.getById = async (req, reply) => {
     }
 }
 
+exports.getDetail = async (req, reply) => {
+    try {
+        const db = await pool.getConnection()
+        const id = req.params.id
+        const input = req.query
+        const column = input.column && input.column !== '' ? input.column : 'pop.*'
+        const sql = `SELECT 
+                    ${column},
+                    departmentCode,
+                    departmentName
+                    FROM pop
+                    INNER JOIN department ON departmentId = popDepartmentId
+                    WHERE popId = ${id}`
+        const res = await db.query(sql)
+        if (res.length > 0) {
+            const sql2 = `SELECT 
+                        popdet.*,
+                        productCode,
+                        productBarcode,
+                        productName
+                    FROM popdet
+                    INNER JOIN product ON productId = popdetProductId
+                    WHERE popdetPopId = ${res[0].popId}
+                    ORDER BY popdetId ASC`
+            const res2 = await db.query(sql2)
+            res[0].detail = res2
+            reply.send({
+                status: 200,
+                error: null,
+                response: res[0],
+            })
+        } else {
+            reply.send({
+                status: 200,
+                error: null,
+                response: null,
+            })
+        }
+        db.end()
+    } catch (err) {
+        console.log(err)
+    }
+}
+
 exports.create = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()    
         const isAllow = await auth.isAllow(input.user, "pop", "add")
-        if (isAllow) {
-            const sql = `call popCreate(?,?,?,?,?)`
+        if (isAllow) {            
+            const sql = `call popCreate(?,?,?,?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
-                input.client, 
-                input.popCode,
-                input.popName,
-                input.user,            
+                input.popDepartmentId, 
+                moment(input.popDate).format('YYYY-MM-DD'),
+                input.popRef,
+                moment(input.popDateRequired).format('YYYY-MM-DD'),
+                (input.popDescription || ''),
+                JSON.stringify(input.detail),
+                input.client,
+                input.branch,
+                input.user,
+                input.fullname,
                 input.logDetail,
             ])
-            if (res[0][0].status === 1) {
+            if (res[0][0].status === 1) {                                             
+                req.io.sockets.emit('pop add', res[0][0])
                 reply.send({
                     status: 200,
                     error: null,
-                    response: `Pre Order Pembelian "${input[label]}" berhasil dibuat`,
+                    response: `Pre Order Pembelian "${res[0][0].transcode}" berhasil dibuat`,
                 })            
             } else {
                 reply.send({
@@ -117,22 +181,32 @@ exports.update = async (req, reply) => {
     const input = req.body
     try {
         const db = await pool.getConnection()
-        const isAllow = await auth.isAllow(input.user, "pop", "edit")
+        const isAllow = await auth.isAllow(input.user, "pop", "edit")        
         if (isAllow) {
-            const sql = `call popUpdate(?,?,?,?,?)`
+            const sql = `call popUpdate(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.popId,
-                input.popCode,
-                input.popName,
+                input.popCodeTrans,
+                input.popDepartmentId,
+                moment(input.popDate).format('YYYY-MM-DD'),
+                input.popRef,
+                moment(input.popDateRequired).format('YYYY-MM-DD'),
+                (input.popDescription || ''),
+                JSON.stringify(input.detail),
+                input.popDetailDeleteId,
+                input.client,
+                input.branch,
                 input.user,
+                input.fullname,
                 input.logDetail,
             ])
-            if (res[0][0].status === 1) {
+            if (res[0][0].status === 1) {                                
+                req.io.sockets.emit('pop edit', res[0][0])
                 reply.send({
                     status: 200,
                     error: null,
                     response: `Pre Order Pembelian "${input[label]}" berhasil diperbarui`,
-                })            
+                })
             } else {
                 reply.send({
                     status: 200,
@@ -160,12 +234,17 @@ exports.delete = async (req, reply) => {
         const db = await pool.getConnection()        
         const isAllow = await auth.isAllow(input.user, "pop", "delete")
         if (isAllow) {
-            const sql = `call popDelete(?,?)`
+            const sql = `call popDelete(?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 id,
+                input.info,
+                input.client,
+                input.branch,
                 input.user,
+                input.fullname,
             ])
             if (res[0][0].status === 1) {
+                req.io.sockets.emit('pop delete', res[0][0])
                 reply.send({
                     status: 200,
                     error: null,

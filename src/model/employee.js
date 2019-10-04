@@ -79,7 +79,7 @@ exports.create = async (req, reply) => {
     try {
         const db = await pool.getConnection()    
         const isAllow = await auth.isAllow(input.user, "employee", "add")
-        if (isAllow) {
+        if (isAllow) {            
             const sql = `call employeeCreate(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.client,
@@ -97,7 +97,7 @@ exports.create = async (req, reply) => {
                 input.employeeIdentityType,
                 input.employeeIdentityNo,
                 input.employeeGraduate,
-                moment(input.employeeInDate).format('YYYY-MM-DD'),
+                (input.employeeInDate ? moment(input.employeeInDate).format('YYYY-MM-DD') : null),
                 input.user,            
                 input.logDetail,
             ])          
@@ -149,7 +149,7 @@ exports.update = async (req, reply) => {
                 input.employeeIdentityType,
                 input.employeeIdentityNo,
                 input.employeeGraduate,
-                moment(input.employeeInDate).format('YYYY-MM-DD'),
+                (input.employeeInDate ? moment(input.employeeInDate).format('YYYY-MM-DD') : null),
                 input.user,
                 input.logDetail,
             ])

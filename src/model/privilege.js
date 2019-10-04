@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const auth = require('./auth');
+const moment = require('moment');
 
 const label = "userEmail";
 
@@ -79,19 +80,19 @@ exports.update = async (req, reply) => {
         const db = await pool.getConnection()
         const isAllow = await auth.isAllow(input.user, "privilege", "edit")
         if (isAllow) {
-            const sql = `call privilegeUpdate(?,?,?,?)`
+            const sql = `call privilegeUpdate(?,?,?,?,?,?,?)`
             const res = await db.query(sql, [
                 input.userId,
                 input.privilegeArrayMenuId,
+                input.client,
+                input.branch,
                 input.user,
+                input.fullname,
                 input.logDetail,
             ])
             if (res[0][0].status === 1) {
-                if (req.connected[input.userId]) {
-                    req.connected[input.userId].emit('privilege updated', {
-                        itId: input.user,
-                        message: `Hak akses kamu baru saja diperbarui oleh ${input.fullname}`,
-                    })
+                if (req.connected[input.userId] && input.user !== input.userId) {
+                    req.connected[input.userId].emit('privilege updated', res[0][0])
                 }
                 reply.send({
                     status: 200,

@@ -12,8 +12,13 @@ exports.checkSession = async (req, reply) => {
                         userPassword,
                         userFullname,
                         userSuper,
+                        userToken AS token,
                         clientId,
                         clientName,
+                        clientEmail,
+                        clientPhone,
+                        clientAddress,
+                        clientLogo,
                         branchId,
                         branchName
                     FROM user
@@ -26,18 +31,7 @@ exports.checkSession = async (req, reply) => {
             reply.send({
                 status: 200,
                 error: null,
-                response: {
-                    isLogged: true,
-                    token: res[0].userToken,
-                    userId: res[0].userId,
-                    email: res[0].userEmail,
-                    fullname: res[0].userFullname,
-                    super: res[0].userSuper,
-                    clientId: res[0].clientId,
-                    clientname: res[0].clientName,
-                    branchId: res[0].branchId,
-                    branchname: res[0].branchName,
-                }
+                response: { ...{ isLogged: true }, ...res[0] }
             })
         } else {
             reply.send({
@@ -62,10 +56,13 @@ exports.in = async (req, reply) => {
                         userEmail,
                         userPassword,
                         userFullname,
-                        userToken,
                         userSuper,
                         clientId,
                         clientName,
+                        clientEmail,
+                        clientPhone,
+                        clientAddress,
+                        clientLogo,
                         branchId,
                         branchName
                     FROM user
@@ -74,36 +71,39 @@ exports.in = async (req, reply) => {
                     WHERE userEmail = '${input.email}'
                     AND userActive = 1`
         const res = await db.query(sql)
+
+        var chunkUpdateToken = async () => {
+            token = jwt.sign({ id: res[0].userId }, 'muhammadevanozaflanalfarezel', {
+                expiresIn: 86400, // expires in 24 hours
+                subject: Date.now().toString()
+            })
+            await db.query(`UPDATE user SET userToken = '${token}' WHERE userId = ${res[0].userId}`)
+            reply.send({
+                status: 200,
+                error: null,
+                response: { ...{ isLogged: true, token: token }, ...res[0] }
+            })
+        }
+
         if (res.length > 0) {
             if (bcrypt.compareSync(input.password, res[0].userPassword)) {                
                 if (res[0].userToken === null) {
-                    token = jwt.sign({ id: res[0].userId }, 'muhammadevanozaflanalfarezel', {
-                        expiresIn: 86400, // expires in 24 hours
-                        subject: Date.now().toString()
-                    })  
-                    await db.query(`UPDATE user SET userToken = '${token}' WHERE userId = ${res[0].userId}`)
-                    reply.send({
-                        status: 200,
-                        error: null,
-                        response: {
-                            isLogged: true,
-                            token: token,
-                            userId: res[0].userId,
-                            email: res[0].userEmail,
-                            fullname: res[0].userFullname,
-                            super: res[0].userSuper,
-                            clientId: res[0].clientId,
-                            clientname: res[0].clientName,
-                            branchId: res[0].branchId,
-                            branchname: res[0].branchName,
-                        }
-                    })
+                    chunkUpdateToken()
                 } else {
-                    reply.send({
-                        status: 200,
-                        error: `User kamu sedang login di perangkat lain, harap di logout dulu.`,
-                        response: null,
-                    })
+                    if (req.connected[res[0].userId]) {                        
+                        if (req.connected[res[0].userId]['connected']) {
+                            req.connected[res[0].userId].emit('notify user already login', {
+                                content: 'User yang kamu pakai sekarang, sedang mencoba login dari perangkat lain.'
+                            })                        
+                        }
+                        reply.send({
+                            status: 200,
+                            error: `User kamu sedang login di perangkat lain.`,
+                            response: null,
+                        })
+                    } else {
+                        chunkUpdateToken()
+                    }                    
                 }
             } else {
                 reply.send({
@@ -130,6 +130,7 @@ exports.out = async (req, reply) => {
         let db = await pool.getConnection()
         const input = req.body
         await db.query(`UPDATE user SET userToken = null WHERE userId = '${input.user}'`).catch(e => console.log(e))
+        delete req.connected[input.user]
         reply.send({
             status: 200,
             error: null,
@@ -203,6 +204,66 @@ exports.getMenuByToken = async (req, reply) => {
     }
 }
 
+exports.getNotificationPrivilegeById = async (req, reply) => {
+    try {
+        let db = await pool.getConnection()
+        const id = req.query.user
+        const sql = `   SELECT menuId, menuKey, menuAction, menuSort
+                        FROM menu
+                        INNER JOIN user ON JSON_CONTAINS(userNotificationPrivilege, CAST(menuId AS CHAR))
+                        WHERE
+                        userId = '${id}'
+                        ORDER BY 
+                        menuSort ASC`
+        const res = await db.query(sql)
+        if (res.length > 0) {
+            reply.send({
+                status: 200,
+                error: null,
+                response: res,
+            })
+        } else {
+            reply.send({
+                status: 200,
+                error: null,
+                response: null,
+            })
+        }
+        db.end()
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+exports.getNotification = async (req, reply) => {
+    try {
+        let db = await pool.getConnection()
+        const userId = req.query.user
+        const sql = `   SELECT *
+                        FROM recipient
+                        INNER JOIN notification ON notificationId = recipientNotificationId
+                        WHERE recipientUserId = '${userId}'
+                        ORDER BY recipientIsRead ASC, notificationDatetime DESC`
+        const res = await db.query(sql)
+        if (res.length > 0) {
+            reply.send({
+                status: 200,
+                error: null,
+                response: res,
+            })
+        } else {
+            reply.send({
+                status: 200,
+                error: null,
+                response: null,
+            })
+        }
+        db.end()
+    } catch (err) {
+        console.log(err)
+    }
+}
+
 exports.isAllow = async (userId, menu, action) => {
     try {
         let db = await pool.getConnection()
@@ -211,12 +272,12 @@ exports.isAllow = async (userId, menu, action) => {
                         COUNT(menuId) AS allow
                     FROM privilege
                     INNER JOIN menu 
-                        ON JSON_CONTAINS(privilegeArrayMenuId, menuId) AND menuLink = ? AND menuAction = ?
+                        ON JSON_CONTAINS(privilegeArrayMenuId, CAST(menuId AS CHAR)) AND menuLink = ? AND menuAction = ?
                     WHERE privilegeUserId = ?
                     `
         const res = await db.query(sql, ['/' + menu, action, userId])                
-        return (res.length > 0) ? res[0].allow === 1 : false
         db.end()
+        return (res.length > 0) ? res[0].allow === 1 : false        
     } catch (err) {
         console.log(err)
     }

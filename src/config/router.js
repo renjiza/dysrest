@@ -26,15 +26,21 @@ app.get('/', (req, res) => {
 })
 
 // //==================== auth =====================
-const auth = require('../model/auth');
+const auth = require('../model/auth')
 app.get('/checkSession', auth.checkSession)
 app.get('/getMenu', auth.getMenu)
 app.get('/getMenuByToken', auth.getMenuByToken)
+app.get('/getNotification', auth.getNotification)
+app.get('/getNotificationPrivilegeById', auth.getNotificationPrivilegeById)
 app.post('/in', auth.in)
 app.put('/out', auth.out)
 
+// //==================== preference =====================
+const preference = require('../model/preference')
+app.put('/preference', preference.update)
+
 // //==================== client =====================
-const client = require('../model/client');
+const client = require('../model/client')
 app.get('/client', client.get)
 app.get('/client/:id', client.getById)
 app.post('/client', client.create)
@@ -43,7 +49,7 @@ app.put('/client/:id', client.change)
 app.delete('/client/:id', client.delete)
 
 //==================== user =====================
-const user = require('../model/user');
+const user = require('../model/user')
 app.get('/user', user.get)
 app.get('/user/:id', user.getById)
 app.post('/user', user.create)
@@ -51,13 +57,13 @@ app.put('/user', user.update)
 app.delete('/user/:id', user.delete)
 
 //==================== akses user =====================
-const privilege = require('../model/privilege');
+const privilege = require('../model/privilege')
 app.get('/privilege', privilege.get)
 app.get('/privilege/:id', privilege.getById)
 app.put('/privilege', privilege.update)
 
 //==================== department =====================
-const department = require('../model/department');
+const department = require('../model/department')
 app.get('/department', department.get)
 app.get('/department/:id', department.getById)
 app.post('/department', department.create)
@@ -65,7 +71,7 @@ app.put('/department', department.update)
 app.delete('/department/:id', department.delete)
 
 //==================== employment =====================
-const employment = require('../model/employment');
+const employment = require('../model/employment')
 app.get('/employment', employment.get)
 app.get('/employment/:id', employment.getById)
 app.post('/employment', employment.create)
@@ -73,7 +79,7 @@ app.put('/employment', employment.update)
 app.delete('/employment/:id', employment.delete)
 
 //==================== employee =====================
-const employee = require('../model/employee');
+const employee = require('../model/employee')
 app.get('/employee', employee.get)
 app.get('/employee/:id', employee.getById)
 app.post('/employee', employee.create)
@@ -81,7 +87,7 @@ app.put('/employee', employee.update)
 app.delete('/employee/:id', employee.delete)
 
 //==================== customer =====================
-const customer = require('../model/customer');
+const customer = require('../model/customer')
 app.get('/customer', customer.get)
 app.get('/customer/:id', customer.getById)
 app.post('/customer', customer.create)
@@ -89,7 +95,7 @@ app.put('/customer', customer.update)
 app.delete('/customer/:id', customer.delete)
 
 //==================== warehouse =====================
-const warehouse = require('../model/warehouse');
+const warehouse = require('../model/warehouse')
 app.get('/warehouse', warehouse.get)
 app.get('/warehouse/:id', warehouse.getById)
 app.post('/warehouse', warehouse.create)
@@ -97,7 +103,7 @@ app.put('/warehouse', warehouse.update)
 app.delete('/warehouse/:id', warehouse.delete)
 
 //==================== producttype =====================
-const producttype = require('../model/producttype');
+const producttype = require('../model/producttype')
 app.get('/producttype', producttype.get)
 app.get('/producttype/:id', producttype.getById)
 app.post('/producttype', producttype.create)
@@ -105,7 +111,7 @@ app.put('/producttype', producttype.update)
 app.delete('/producttype/:id', producttype.delete)
 
 //==================== product =====================
-const product = require('../model/product');
+const product = require('../model/product')
 app.get('/product', product.get)
 app.get('/product/:id', product.getById)
 app.post('/product', product.create)
@@ -113,11 +119,29 @@ app.put('/product', product.update)
 app.delete('/product/:id', product.delete)
 
 //==================== vendor =====================
-const vendor = require('../model/vendor');
+const vendor = require('../model/vendor')
 app.get('/vendor', vendor.get)
 app.get('/vendor/:id', vendor.getById)
 app.post('/vendor', vendor.create)
 app.put('/vendor', vendor.update)
 app.delete('/vendor/:id', vendor.delete)
+
+//==================== pop =====================
+const pop = require('../model/pop')
+app.get('/pop', pop.get)
+app.get('/pop/:id', pop.getById)
+app.get('/pop/detail/:id', pop.getDetail)
+app.post('/pop', pop.create)
+app.put('/pop', pop.update)
+app.delete('/pop/:id', pop.delete)
+
+//==================== po =====================
+const po = require('../model/po')
+app.get('/po', po.get)
+app.get('/po/:id', po.getById)
+app.get('/po/detail/:id', po.getDetail)
+app.post('/po', po.create)
+app.put('/po', po.update)
+app.delete('/po/:id', po.delete)
 
 module.exports = app
